@@ -7,13 +7,13 @@ import os
 
 # Функция, которая сканирует QR-код и возвращает команды дрону для передвижения и выполнения задания. Функция
 # обрабатывает только QR-коды в формате, указанном в инструкции.
-def read_qr(camera_frame, drone):
-    t1_x = 0
-    t1_y = 0
-    t2_x = 0
-    t2_y = 0
-    t3_x = 0
-    t3_y = 0
+def read_qr(camera_frame):
+    t1_x = float(0)
+    t1_y = float(0)
+    t2_x = float(0)
+    t2_y = float(0)
+    t3_x = float(0)
+    t3_y = float(0)
     shift = 0
     try:
         gray = cv2.cvtColor(camera_frame, cv2.COLOR_BGR2GRAY)
@@ -23,37 +23,37 @@ def read_qr(camera_frame, drone):
         if '.' in string:  # проверка на то, что QR-код обработан
             text = string.split()  # создаём список, содержащий каждое из полученных чисел в отдельности
             print("[INFO] Получен набор команд: ", text)
-            com_x = float(text[0])  # присваиваем x координату, к которой полетит дрон после выполнения задания
-            com_y = float(text[1])  # присваиваем y координату, к которой полетит дрон после выполнения задания
+            new_x = float(text[0])  # присваиваем x координату, к которой полетит дрон после выполнения задания
+            new_y = float(text[1])  # присваиваем y координату, к которой полетит дрон после выполнения задания
             # если обе координаты равны нулю, дрон выполнит задание и сядет, для этого задействуем флаг finish
-            if com_x == 0 and com_y == 0:
+            if new_x == 0 and new_y == 0:
                 print('[INFO] Дрон ')
                 shift = int(text[2])
             else:
-                t1_x = float(text[3])
-                t1_y = float(text[4])
-                t2_x = float(text[5])
-                t2_y = float(text[6])
-                t3_x = float(text[7])
-                t3_y = float(text[8])
-            return com_x, com_y, t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift
+                t1_x = float(text[2])
+                t1_y = float(text[3])
+                t2_x = float(text[4])
+                t2_y = float(text[5])
+                t3_x = float(text[6])
+                t3_y = float(text[7])
+            return new_x, new_y, t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift
         return float(0), float(0), t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift
     except cv2.error:  # если возникла ошибка, возвращает нули и finish = False, т.е. не отдаёт команд
         return float(0), float(0), t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift
 
-
-def letter_define shdh
 
 # Функция, обрабатывающая команды с QR-кодов. Она циклично получает с камеры кадры и сканирует их на наличие
 # зашифрованных команд. После получения команд, выполняет их.
 def drone_flight(drone, camera_ip):
     command_x = 0
     command_y = 0
-    counter = 0  # счётчик для фотографий (нужен, чтобы фотографии друг друга не перезаписывали)
-    flight_height = float(0.5)  # высота полёта дрона
+    flight_height = float(1)
+    proximity_height = float(0.5)
     new_point = True
-    task_progress = False
     finish = False
+    t1 = False
+    t2 = False
+    t3 = False
 
     while True:
         try:
@@ -62,59 +62,57 @@ def drone_flight(drone, camera_ip):
                 continue
 
             if new_point:  # подаёт команду дрону двигаться к следующему QR-коду после выполнения задания
-                drone.go_to_local_point(x=command_x, y=command_y, z=flight_height, yaw=0)
                 new_point = False
-                if finish:  # если read_qr вернула значение True для посадки, завершает программу
+                drone.go_to_local_point(x=command_x, y=command_y, z=flight_height, yaw=0)
+                if finish:
                     break
 
-            if drone.point_reached():  # если точка достигнута
-                # task_progress определяет, находится ли дополнительное здание в процессе выполнения, чтобы не
-                # прерывать основное, False - дрон не получил задание и готов сканировать QR-код
-                if task_progress is False:
-                    new_x, new_y, task_x, task_y, rgb, task_num, finished = read_qr(camera_frame, drone)
-                    finish = finished  # извлекаем флаг, соответствующей завершению задания
-                    # если получена команда сфотографировать или приземлиться, дрон вначале переместится к координатам,
-                    # в которых нужно выполнить задание
-                    if task_num == 1 or task_num == 2:
-                        drone.go_to_local_point(x=(command_x+task_x), y=(command_y+task_y), z=flight_height, yaw=0)
-                        task_progress = True
-                    elif task_num == 3:  # в случае включения светодиода никуда перемещаться не надо
-
-                        new_point = True
-                        # обновление координат, new_x и new_y - положение следующего QR-кода относительно прошлого
-                        command_x += new_x
-                        command_y += new_y
+            if drone.point_reached() and not t1 and not t2 and not t3:  # если точка достигнута
+                n_x, n_y, t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift = read_qr(camera_frame)
+                if n_x == float(0) and n_y == float(0) and shift != 0:
+                    finish = True
+                else:
+                    if t1_x != 0 or t1_y != 0:
+                        t1 = True
+                    if t2_x != 0 or t2_y != 0:
+                        t2 = True
+                    if t1_x != 0 or t1_y != 0:
+                        t3 = True
                     else:
+                        print("[INFO] Координаты символов не заложены в набор команд")
+                        command_x += n_x
+                        command_y += n_y
                         new_point = True
-                        print("[INFO] Задание не получено")
-                        command_x += new_x
-                        command_y += new_y
-                elif task_progress:  # если дрон получил задание и пришёл в нужную точку
-                    task_progress = False
-                    if task_num is 1:
-                        counter += 1
-                        # сохраняет фотографию в папку Photos как qrcodeX, где X - значение счётчика
-                        cv2.imwrite(os.path.join(Photos, 'qrcode%d.jpg' % counter), camera_frame)
-                        print('[INFO] Фотография сохранена')
-                    elif task_num is 2:
-                        drone.land()
-                        time.sleep(3)
-                        drone.arm()
-                        drone.takeoff()
-                        print('[INFO] Посадка и взлёт выполнены')
-                        # после повторного запуска дрон начинает отсчёт координат заново, поэтому передаём ему
-                        # старые координаты
-                        command_x -= task_x
-                        command_y -= task_y
-                    # летит в точку, в которой дрон получил выполненное задание, чтобы продолжить полёт.
-                    drone.go_to_local_point(x=command_x, y=command_y, z=flight_height, yaw=0)
-                    # зацикливаем скрипт, чтобы дрон игнорировал команды на пути к изначальной точке
+
+            if t1 or t2 or t3:  # если дрон получил задание и пришёл в нужную точку
+                t1 = False
+                t2 = False
+                t3 = False
+                if t1:
+                    print("[INFO] Дрон направляется к первой точке")
+                    drone.go_to_local_point(x=command_x+t1_x, y=command_y+t1_y, z=proximity_height, yaw=0)
                     while True:
-                        if drone.point_reached():  # условие выхода - точка достигнута
+                        if drone.point_reached():
                             break
-                    command_x += new_x
-                    command_y += new_y
-                    new_point = True
+                    # yan
+                if t2:
+                    print("[INFO] Дрон направляется к второй точке")
+                    drone.go_to_local_point(x=command_x+t2_x, y=command_y+t2_y, z=proximity_height, yaw=0)
+                    while True:
+                        if drone.point_reached():
+                            break
+                    # yan
+                if t3:
+                    print("[INFO] Дрон направляется к третьей точке")
+                    drone.go_to_local_point(x=command_x+t3_x, y=command_y+t3_y, z=proximity_height, yaw=0)
+                    while True:
+                        if drone.point_reached():
+                            break
+                    # yan
+                command_x += n_x
+                command_y += n_y
+                new_point = True
+
             cv2.imshow('QR Reading', camera_frame)  # вывод изображения на компьютер
         except cv2.error:  # в случае ошибки не завершает скрипт предварительно, а продолжает работу в цикле
             continue
