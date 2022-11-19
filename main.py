@@ -36,6 +36,7 @@ def read_qr(camera_frame):
                 t2_y = float(text[5])
                 t3_x = float(text[6])
                 t3_y = float(text[7])
+                shift = 24
             return new_x, new_y, t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift
         return float(0), float(0), t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, shift
     except cv2.error:  # если возникла ошибка, возвращает нули и finish = False, т.е. не отдаёт команд
@@ -47,8 +48,8 @@ def read_qr(camera_frame):
 def drone_flight(drone, camera_ip):
     command_x = 0
     command_y = 0
-    flight_height = float(1)
-    proximity_height = float(0.5)
+    flight_height = float(0.5)
+    proximity_height = float(0.3)
     new_point = True
     finish = False
     t1 = False
@@ -78,13 +79,13 @@ def drone_flight(drone, camera_ip):
                         t2 = True
                     if t1_x != 0 or t1_y != 0:
                         t3 = True
-                    else:
+                    if shift == 24:
                         print("[INFO] Координаты символов не заложены в набор команд")
                         command_x += n_x
                         command_y += n_y
                         new_point = True
 
-            if t1 or t2 or t3:  # если дрон получил задание и пришёл в нужную точку
+            if drone.point_reached() and (t1 or t2 or t3):  # если дрон получил задание и пришёл в нужную точку
                 t1 = False
                 t2 = False
                 t3 = False
