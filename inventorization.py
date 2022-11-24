@@ -7,11 +7,11 @@ import os
 
 
 def inventorize(drone, camera_ip):
-    storage_name = np.empty(storage_height*storage_width, dtype=object)
-    storage_quantity = np.empty(storage_height*storage_width, dtype=int)
+    storage_name = []
+    storage_quantity = []
     counter = 0
     command_x = float(0)
-    command_z = float(0.89)
+    command_z = float(0.92)
     detector = cv2.QRCodeDetector()
     new_point = True
     while True:
@@ -37,18 +37,24 @@ def inventorize(drone, camera_ip):
                 if ' ' in string:
                     text = string.split()
                     print("[INFO] Найден предмет", text[0], "в количестве", int(text[1]))
-                    np.insert(storage_name, counter, text[0])
-                    np.insert(storage_quantity, counter, int(text[1]))
+                    storage_name.append(str(text[0]))
+                    storage_quantity.append(int(text[1]))
                     print('Сохраняю фотографию...')
                     cv2.imwrite(os.path.join(Storage, text[0] + str(text[1]) + ".jpg"), camera_frame)
                 else:
                     print("[INFO] На данной полке предмет отсутствует")
-                    np.insert(storage_name, counter, "None")
-                    np.insert(storage_quantity, counter, 0)
+                    storage_name.append("None")
+                    storage_quantity.append(int(0))
                 if counter == storage_height * storage_width - 1:
                     print("[INFO] Инвентаризация завершена:")
                     print(storage_name)
                     print(storage_quantity)
+                    drone.go_to_local_point(x=0, y=0, z=command_z, yaw=0)
+                    while True:
+                        if drone.point_reached():
+                            time.sleep(1)
+                            drone.land()
+                            break
                     return storage_name, storage_quantity
                 elif counter == storage_width - 1:
                     command_x = float(0)
@@ -71,19 +77,18 @@ def inventorize(drone, camera_ip):
 
 
 def find_item(result, drone):
-    temp = result
-    col = 0
-    row = 0
-    for j in range(storage_height-1):
-        if temp < storage_width:
-            col = temp
-            row = storage_height-1-j
-            break
-        else:
-            temp -= storage_width
-    command_x = float(x_inc*col)
-    command_z = float(1+z_inc*row)
-    drone.go_to_local_point(x=command_x, y=0, z=command_z, yaw=0)
+    col = result+1
+    row = float(0.92)
+    # for j in range(storage_height-1):
+    #     if temp < storage_width:
+    #         col = temp
+    #         row = storage_height-j  #!
+    #         break
+    #     else:
+    #         temp -= storage_width
+    cmd_x = float(x_inc*col)
+    cmd_z = float(0.92)
+    drone.go_to_local_point(x=cmd_x, y=0, z=cmd_z, yaw=0)
     while True:
         if drone.point_reached():
             break
@@ -103,38 +108,39 @@ if __name__ == '__main__':
     pioneer_mini.takeoff()
     camera = Camera()
 
-    storage_height = 2
+    storage_height = 1
     storage_width = 4
     x_inc = float(0.4475)
     z_inc = float(0.25)
     names, quantities = inventorize(pioneer_mini, camera)
 
-    # item_found = False
-    # while True:
-    #     item = input("Какой предмет нужно найти? ")
-    #     if item == "exit":
-    #         print("[INFO] Программа завершается предварительно")
-    #         pioneer_mini.land()
-    #         time.sleep(5)
-    #         cv2.destroyAllWindows()  # закрывает окно с выводом изображения
-    #         exit(0)
-    #     if item in names:
-    #         quantity = int(input("В каком количестве? "))
-    #         names_list = list(names)
-    #         indexes = list(locate(names_list, lambda x: x == item))
-    #         for i in range(len(indexes)):
-    #             if quantity <= quantities[indexes[i]]:
-    #                 result_index = indexes[i]
-    #                 item_found = True
-    #                 print("Ячейка", result_index + 1, "содержит", item, "в нужном количестве")
-    #                 break
-    #         if item_found:
-    #             break
-    #         print(item, "в нужном количестве не найден, повторите попытку")
-    #     else:
-    #         print("Такого предмета нет на складе, повторите попытку")
-    #
-    # find_item(result_index, pioneer_mini)
+    item_found = False
+    while True:
+        item = input("Какой предмет нужно найти? ")
+        if item == "exit":
+            print("[INFO] Программа завершается предварительно")
+            pioneer_mini.land()
+            time.sleep(5)
+            cv2.destroyAllWindows()  # закрывает окно с выводом изображения
+            exit(0)
+        if item in names:
+            quantity = int(input("В каком количестве? "))
+            indexes = list(locate(names, lambda x: x == item))
+            for i in range(len(indexes)):
+                if quantity <= quantities[indexes[i]]:
+                    result_index = indexes[i]
+                    item_found = True
+                    print("Ячейка", result_index + 1, "содержит", item, "в нужном количестве")
+                    break
+            if item_found:
+                break
+            print(item, "в нужном количестве не найден, повторите попытку")
+        else:
+            print("Такого предмета нет на складе, повторите попытку")
+
+    pioneer_mini.arm()
+    pioneer_mini.takeoff()
+    find_item(result_index, pioneer_mini)
 
     pioneer_mini.land()
     time.sleep(5)
