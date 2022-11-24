@@ -50,7 +50,7 @@ def inventorize(drone, camera_ip):
                     print(storage_name)
                     print(storage_quantity)
                     return storage_name, storage_quantity
-                if counter == storage_width - 1:
+                elif counter == storage_width - 1:
                     command_x = float(0)
                     command_z -= z_inc
                 else:
