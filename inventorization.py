@@ -11,7 +11,7 @@ def inventorize(drone, camera_ip):
     storage_quantity = np.empty(storage_height*storage_width, dtype=int)
     counter = 0
     command_x = float(0)
-    command_z = float(0.85)
+    command_z = float(0.89)
     detector = cv2.QRCodeDetector()
     new_point = True
     while True:
@@ -25,32 +25,34 @@ def inventorize(drone, camera_ip):
                 drone.go_to_local_point(x=command_x, y=0, z=command_z, yaw=0)
 
             if drone.point_reached():
-                time.sleep(1.5)
-                gray = cv2.cvtColor(camera_frame, cv2.COLOR_BGR2GRAY)
-                start_timer = time.time()
+                timer = time.time()
                 while True:
-                    string, _, _ = detector.detectAndDecode(gray)  # получать кадр 3 секунды!
-                    if ' ' in string or time.time() - start_timer > 3:
-                        break
+                    try:
+                        gray = cv2.cvtColor(camera_ip.get_cv_frame(), cv2.COLOR_BGR2GRAY)
+                        string, _, _ = detector.detectAndDecode(gray)  # получать кадр 3 секунды!
+                        if ' ' in string or (time.time() - timer > float(5)):
+                            break
+                    except:
+                        continue
                 if ' ' in string:
                     text = string.split()
                     print("[INFO] Найден предмет", text[0], "в количестве", int(text[1]))
                     np.insert(storage_name, counter, text[0])
                     np.insert(storage_quantity, counter, int(text[1]))
                     print('Сохраняю фотографию...')
-                    cv2.imwrite(os.path.join(Storage, text[0]+str(text[1])+".jpg"), camera_frame)
+                    cv2.imwrite(os.path.join(Storage, text[0] + str(text[1]) + ".jpg"), camera_frame)
                 else:
                     print("[INFO] На данной полке предмет отсутствует")
                     np.insert(storage_name, counter, "None")
                     np.insert(storage_quantity, counter, 0)
-                if counter == storage_width-1:
+                if counter == storage_height * storage_width - 1:
+                    print("[INFO] Инвентаризация завершена:")
+                    print(storage_name)
+                    print(storage_quantity)
+                    return storage_name, storage_quantity
+                if counter == storage_width - 1:
                     command_x = float(0)
                     command_z -= z_inc
-                    if counter == storage_height*storage_width-1:
-                        print("[INFO] Инвентаризация завершена:")
-                        print(storage_name)
-                        print(storage_quantity)
-                        return storage_name, storage_quantity
                 else:
                     command_x += x_inc
                 new_point = True
@@ -101,10 +103,10 @@ if __name__ == '__main__':
     pioneer_mini.takeoff()
     camera = Camera()
 
-    storage_height = 1
-    storage_width = 2
-    x_inc = float(0.45)
-    z_inc = float(0.01)
+    storage_height = 2
+    storage_width = 4
+    x_inc = float(0.4475)
+    z_inc = float(0.25)
     names, quantities = inventorize(pioneer_mini, camera)
 
     # item_found = False
