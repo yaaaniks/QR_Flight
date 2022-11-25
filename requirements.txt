@@ -1,8 +1,8 @@
 future==0.18.2
 lxml==4.9.1
 more-itertools==9.0.0
-numpy==1.23.4
 opencv-contrib-python==4.5.1.48
+numpy==1.23.4
 pioneer-sdk==0.4.2
 pymavlink==2.4.37
 pyserial==3.5
