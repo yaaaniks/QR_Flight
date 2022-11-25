@@ -1,0 +1,1 @@
+Full instructions on environment setup and inventorization script implementation are described in [here](https://docs.google.com/document/d/1jtjMKf8CgmSN1jkFwbOSDZcu7yRUsrBp/edit?usp=sharing&ouid=117002319082101095257&rtpof=true&sd=true) (russian language only).
