@@ -9,9 +9,9 @@ import os
 def inventorize(drone, camera_ip):
     storage_name = []
     storage_quantity = []
-    counter = 0
+    counter = 1
     command_x = float(0)
-    command_z = float(0.92)
+    command_z = float(start_height)
     detector = cv2.QRCodeDetector()
     new_point = True
     while True:
@@ -19,6 +19,7 @@ def inventorize(drone, camera_ip):
             camera_frame = camera_ip.get_cv_frame()
             if np.sum(camera_frame) == 0:
                 continue
+            cv2.imshow('QR Reading', camera_frame)
 
             if new_point:
                 new_point = False
@@ -29,41 +30,40 @@ def inventorize(drone, camera_ip):
                 while True:
                     try:
                         gray = cv2.cvtColor(camera_ip.get_cv_frame(), cv2.COLOR_BGR2GRAY)
-                        string, _, _ = detector.detectAndDecode(gray)  # получать кадр 3 секунды!
-                        if ' ' in string or (time.time() - timer > float(5)):
+                        string, _, _ = detector.detectAndDecode(gray)
+                        if ' ' in string or (time.time() - timer > float(2.5)):
                             break
                     except:
                         continue
+
                 if ' ' in string:
                     text = string.split()
-                    print("[INFO] Найден предмет", text[0], "в количестве", int(text[1]))
-                    storage_name.append(str(text[0]))
+                    print("[INFO] Найден предмет", text[0], "в количестве", text[1])
+                    storage_name.append(text[0])
                     storage_quantity.append(int(text[1]))
                     print('Сохраняю фотографию...')
-                    cv2.imwrite(os.path.join(Storage, text[0] + str(text[1]) + ".jpg"), camera_frame)
+                    cv2.imwrite(os.path.join(Storage, text[0] + text[1] + ".jpg"), camera_frame)
                 else:
                     print("[INFO] На данной полке предмет отсутствует")
                     storage_name.append("None")
                     storage_quantity.append(int(0))
-                if counter == storage_height * storage_width - 1:
+
+                if counter == storage_height * storage_width:
                     print("[INFO] Инвентаризация завершена:")
                     print(storage_name)
                     print(storage_quantity)
                     drone.go_to_local_point(x=0, y=0, z=command_z, yaw=0)
                     while True:
                         if drone.point_reached():
-                            time.sleep(1)
                             drone.land()
-                            break
-                    return storage_name, storage_quantity
-                elif counter == storage_width - 1:
+                            return storage_name, storage_quantity
+                elif counter == storage_width:
                     command_x = float(0)
                     command_z -= z_inc
                 else:
                     command_x += x_inc
                 new_point = True
                 counter += 1
-            cv2.imshow('QR Reading', camera_frame)
         except cv2.error:
             continue
 
@@ -77,22 +77,21 @@ def inventorize(drone, camera_ip):
 
 
 def find_item(result, drone):
-    col = result+1
-    row = float(0.92)
-    # for j in range(storage_height-1):
-    #     if temp < storage_width:
-    #         col = temp
-    #         row = storage_height-j  #!
-    #         break
-    #     else:
-    #         temp -= storage_width
+    col = result
+    row = 0
+    for j in range(storage_height-1):
+        if col < storage_width:
+            row = j
+            break
+        else:
+            col -= storage_width
     cmd_x = float(x_inc*col)
-    cmd_z = float(0.92)
+    cmd_z = start_height-float(z_inc*row)
     drone.go_to_local_point(x=cmd_x, y=0, z=cmd_z, yaw=0)
     while True:
         if drone.point_reached():
             break
-    print("[INFO] Дрон нашёл предмет под номером", result+1)
+    print("Дрон подсвечивает ячейку")
     drone.led_control(r=0, g=255, b=0)
     time.sleep(3)
     drone.led_control(r=0, g=0, b=0)
@@ -108,10 +107,11 @@ if __name__ == '__main__':
     pioneer_mini.takeoff()
     camera = Camera()
 
-    storage_height = 1
-    storage_width = 4
-    x_inc = float(0.4475)
+    storage_height = 2
+    storage_width = 3
+    x_inc = float(0.475)
     z_inc = float(0.25)
+    start_height = float(0.92)
     names, quantities = inventorize(pioneer_mini, camera)
 
     item_found = False
@@ -119,8 +119,6 @@ if __name__ == '__main__':
         item = input("Какой предмет нужно найти? ")
         if item == "exit":
             print("[INFO] Программа завершается предварительно")
-            pioneer_mini.land()
-            time.sleep(5)
             cv2.destroyAllWindows()  # закрывает окно с выводом изображения
             exit(0)
         if item in names:
