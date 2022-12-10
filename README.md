@@ -2,8 +2,9 @@
       <img src="http://sun9-87.userapi.com/c627118/v627118100/42db9/7ppi9z9xugg.jpg" width="400">
 </p>
 <h1 align="center">Word search by QR codes</a>
-<h3 align="center"><a href="https://docs.google.com/document/d/1HxJ86YWJzMRQRYc6xhSHnRrwHZqNWnkgFet6kvs_mLI/edit#" target="_blank">Case description </a> 
-<h3 align="center"><a href="https://docs.google.com/document/d/1HxJ86YWJzMRQRYc6xhSHnRrwHZqNWnkgFet6kvs_mLI/edit#" target="_blank">Case solution </a> 
+<h3 align="center">
+      <a href="https://docs.google.com/document/d/1HxJ86YWJzMRQRYc6xhSHnRrwHZqNWnkgFet6kvs_mLI/edit#" target="_blank">Case description </a> 
+      <a href="https://docs.google.com/document/d/1HxJ86YWJzMRQRYc6xhSHnRrwHZqNWnkgFet6kvs_mLI/edit#" target="_blank">Case solution </a> 
 </p>
 
 ## About
